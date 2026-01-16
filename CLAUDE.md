@@ -1,7 +1,7 @@
 # Propotive - Project Rules
 
 ## Overview
-Full-stack TypeScript monorepo with React frontend, Express backend, PostgreSQL database, and Prisma ORM. All services run in Docker containers with hot reloading.
+Full-stack TypeScript monorepo with React frontend, Express backend (MVC pattern), PostgreSQL database, and Prisma ORM. All services run in Docker containers with hot reloading.
 
 ## Tech Stack
 | Component | Technology |
@@ -9,7 +9,8 @@ Full-stack TypeScript monorepo with React frontend, Express backend, PostgreSQL 
 | Frontend | React 18 + Vite + TypeScript |
 | UI Components | shadcn/ui + Tailwind CSS |
 | Data Fetching | TanStack Query (React Query) |
-| Backend | Express + TypeScript + Nodemon |
+| Backend | Express + TypeScript + Nodemon (MVC) |
+| Validation | Zod |
 | Database | PostgreSQL 15 |
 | ORM | Prisma |
 | Containerization | Docker Compose |
@@ -17,15 +18,18 @@ Full-stack TypeScript monorepo with React frontend, Express backend, PostgreSQL 
 ## Project Structure
 ```
 propotive/
-├── client/          # React frontend (port 5173)
+├── client/                # React frontend (port 5173)
 │   └── src/
-│       ├── components/ui/  # shadcn/ui components
-│       ├── lib/            # Utilities (api.ts, utils.ts)
-│       └── hooks/          # Custom hooks
-├── server/          # Express backend (port 3000)
+│       ├── components/ui/ # shadcn/ui components
+│       ├── lib/           # Utilities (api.ts, utils.ts)
+│       └── hooks/         # Custom hooks
+├── server/                # Express backend (port 3000)
 │   └── src/
-│       └── routes/  # API route handlers
-├── prisma/          # Prisma schema (shared)
+│       ├── controllers/   # Business logic (MVC)
+│       ├── routes/        # Route definitions (MVC)
+│       ├── schemas/       # Zod validation schemas
+│       └── index.ts       # App entry point
+├── prisma/                # Prisma schema (shared)
 └── docker-compose.yml
 ```
 
@@ -94,10 +98,84 @@ const mutation = useMutation({
 - Add new components: `npx shadcn@latest add <component-name>`
 - Components are customizable - edit files directly in `components/ui/`
 
-### Express (server)
-- Route handlers go in `server/src/routes/`
-- Use Prisma client for database operations
+### Express (server) - MVC Pattern
+Server follows MVC (Model-View-Controller) pattern:
+
+- **Routes** (`server/src/routes/`) - Define endpoints, delegate to controllers
+- **Controllers** (`server/src/controllers/`) - Handle business logic
+- **Models** - Prisma handles data layer via `schema.prisma`
+
+**Route file pattern:**
+```typescript
+// server/src/routes/items.ts
+import { Router } from "express";
+import * as itemsController from "../controllers/items.controller";
+
+const router = Router();
+router.get("/", itemsController.getAll);
+router.post("/", itemsController.create);
+export default router;
+```
+
+**Controller file pattern:**
+```typescript
+// server/src/controllers/items.controller.ts
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import { createItemSchema } from "../schemas/items.schema";
+
+const prisma = new PrismaClient();
+
+export async function getAll(req: Request, res: Response) {
+  const items = await prisma.item.findMany();
+  res.json(items);
+}
+
+export async function create(req: Request, res: Response) {
+  const body = createItemSchema.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ error: body.error.issues[0].message });
+  }
+  const item = await prisma.item.create({ data: body.data });
+  res.status(201).json(item);
+}
+```
+
+**Naming conventions:**
+- Route files: `server/src/routes/<resource>.ts`
+- Controller files: `server/src/controllers/<resource>.controller.ts`
+- Schema files: `server/src/schemas/<resource>.schema.ts`
 - Return proper HTTP status codes (200, 201, 204, 400, 404, 500)
+
+### Zod Validation
+- Schemas live in `server/src/schemas/`
+- Use `safeParse()` for validation (returns success/error object)
+- Return first error message on validation failure
+
+**Schema file pattern:**
+```typescript
+// server/src/schemas/items.schema.ts
+import { z } from "zod";
+
+export const createItemSchema = z.object({
+  name: z.string().min(1, "Name is required").max(255, "Name is too long"),
+});
+
+export const itemIdSchema = z.object({
+  id: z.string().regex(/^\d+$/, "Invalid ID").transform(Number),
+});
+
+export type CreateItemInput = z.infer<typeof createItemSchema>;
+```
+
+**Validation pattern in controllers:**
+```typescript
+const body = createItemSchema.safeParse(req.body);
+if (!body.success) {
+  return res.status(400).json({ error: body.error.issues[0].message });
+}
+// Use validated data: body.data
+```
 
 ### Prisma
 - Schema lives in `prisma/schema.prisma`
@@ -120,3 +198,5 @@ const mutation = useMutation({
 - Don't modify files in `node_modules/`
 - Don't use raw `fetch` in components - use TanStack Query hooks
 - Don't manage server state with `useState` - use `useQuery` instead
+- Don't put business logic in route files - use controllers
+- Don't validate request data manually - use Zod schemas
