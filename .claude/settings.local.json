@@ -4,7 +4,8 @@
       "Bash(docker compose:*)",
       "Bash(curl:*)",
       "Bash(npm install:*)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }
