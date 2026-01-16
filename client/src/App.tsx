@@ -50,68 +50,12 @@ function Dashboard() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <p className="text-sm text-muted-foreground">
-            Welcome, {user?.name}
-          </p>
+          <p className="text-sm text-muted-foreground">Welcome, {user?.name}</p>
           <Button variant="outline" size="sm" onClick={logout}>
             <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Items</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {(error || mutationError) && (
-              <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                {error?.message || mutationError?.message}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="flex gap-3">
-              <Input
-                type="text"
-                value={newItemName}
-                onChange={(e) => setNewItemName(e.target.value)}
-                placeholder="Enter item name"
-                className="flex-1"
-                disabled={createMutation.isPending}
-              />
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Adding..." : "Add Item"}
-              </Button>
-            </form>
-
-            {isLoading ? (
-              <p className="text-muted-foreground">Loading...</p>
-            ) : items.length === 0 ? (
-              <p className="text-muted-foreground">
-                No items yet. Add one above!
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex justify-between items-center p-3 bg-muted rounded-md"
-                  >
-                    <span>{item.name}</span>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
