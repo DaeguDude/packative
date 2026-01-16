@@ -48,3 +48,30 @@ export interface Item {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Auth types
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface SignupInput {
+  email: string;
+  name: string;
+  password: string;
+}
