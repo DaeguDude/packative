@@ -6,7 +6,7 @@ import {
   ApiError,
   ApiErrorResponse,
   ApiSuccessResponse,
-} from "../types/api";
+} from "../../shared/types/api";
 
 // Re-export types for convenience
 export { ErrorCode, ApiError, ApiErrorResponse, ApiSuccessResponse };

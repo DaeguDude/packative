@@ -28,10 +28,12 @@ propotive/
 │       ├── controllers/   # Business logic (MVC)
 │       ├── routes/        # Route definitions (MVC)
 │       ├── schemas/       # Zod validation schemas
-│       ├── types/         # TypeScript types (api.ts)
 │       ├── utils/         # Utilities (api-response.ts)
 │       └── index.ts       # App entry point
-├── prisma/                # Prisma schema (shared)
+├── shared/                # Shared types (used by client & server)
+│   └── types/
+│       └── api.ts         # API response types, entity types
+├── prisma/                # Prisma schema
 └── docker-compose.yml
 ```
 
@@ -61,6 +63,25 @@ docker compose down -v  # Stop and wipe database
 - Avoid `any` type - use proper typing
 - Use interfaces for object shapes
 - Use async/await over .then() chains
+
+### Shared Types
+Types shared between client and server live in `shared/types/`.
+
+**Import in client:**
+```typescript
+import { Item, ApiResponse, isApiError } from "@shared/types/api";
+```
+
+**Import in server:**
+```typescript
+import { ErrorCode, ApiSuccessResponse } from "../../shared/types/api";
+```
+
+**What goes in shared types:**
+- API response types (`ApiSuccessResponse`, `ApiErrorResponse`)
+- Entity types (`Item`, etc.) - mirror Prisma models for client use
+- Error codes enum
+- Type guards (`isApiError`)
 
 ### React (client)
 - Use functional components with hooks
@@ -232,6 +253,56 @@ ApiResponse.internalError(res, message?)
 // DELETE /api/items/:id  - Delete
 ```
 
+## Testing
+
+### Integration Tests (Server)
+Tests use Vitest + Supertest with a separate PostgreSQL container.
+
+**Test structure:**
+```
+server/
+├── tests/
+│   ├── setup.ts           # DB reset before each test
+│   └── items.test.ts      # Integration tests
+├── test.sh                # Script to run tests
+└── vitest.config.ts
+```
+
+**Running tests:**
+```bash
+cd server
+npm run test:integration   # Full flow: start DB → migrate → test → cleanup
+npm run test               # Watch mode (requires DB running)
+npm run test:run           # Single run (requires DB running)
+```
+
+**Test file pattern:**
+```typescript
+// server/tests/items.test.ts
+import { describe, it, expect } from "vitest";
+import request from "supertest";
+import app from "../src/app";
+import { prisma } from "./setup";
+
+describe("Items API", () => {
+  it("should return all items", async () => {
+    await prisma.item.create({ data: { name: "Test" } });
+
+    const res = await request(app).get("/api/items");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+  });
+});
+```
+
+**How test.sh works:**
+1. Spins up ephemeral PostgreSQL container on port 5433
+2. Runs Prisma migrations
+3. Executes tests
+4. Tears down container (auto-cleanup on exit)
+
 ## Don'ts
 - Don't commit `.env` files (use `.env.example` as template)
 - Don't run `docker compose down -v` unless you want to wipe the database
@@ -242,3 +313,4 @@ ApiResponse.internalError(res, message?)
 - Don't put business logic in route files - use controllers
 - Don't validate request data manually - use Zod schemas
 - Don't use raw `res.json()` or `res.status()` - use `ApiResponse` class
+- Don't run tests against the development database - use `npm run test:integration`

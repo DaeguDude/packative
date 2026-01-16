@@ -1,3 +1,4 @@
+// Error codes for API responses
 export enum ErrorCode {
   VALIDATION_ERROR = "VALIDATION_ERROR",
   NOT_FOUND = "NOT_FOUND",
@@ -7,6 +8,7 @@ export enum ErrorCode {
   INTERNAL_ERROR = "INTERNAL_ERROR",
 }
 
+// Error structure
 export interface ApiError {
   code: ErrorCode;
   message: string;
@@ -16,6 +18,7 @@ export interface ApiError {
   }>;
 }
 
+// API response types
 export interface ApiErrorResponse {
   success: false;
   error: ApiError;
@@ -36,4 +39,12 @@ export function isApiError(
   response: ApiSuccessResponse<unknown> | ApiErrorResponse
 ): response is ApiErrorResponse {
   return response.success === false;
+}
+
+// Entity types
+export interface Item {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
 }
