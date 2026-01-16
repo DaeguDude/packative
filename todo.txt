@@ -1,3 +1,9 @@
 - Probably start with Blog schema
 - And implement API routes
 - Fetch them from client
+
+----------------------
+
+MAkit work
+
+- When user hits the root of the client... show blog posts first. It doens't need authentication.
