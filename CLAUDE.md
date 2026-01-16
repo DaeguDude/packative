@@ -28,6 +28,8 @@ propotive/
 │       ├── controllers/   # Business logic (MVC)
 │       ├── routes/        # Route definitions (MVC)
 │       ├── schemas/       # Zod validation schemas
+│       ├── types/         # TypeScript types (api.ts)
+│       ├── utils/         # Utilities (api-response.ts)
 │       └── index.ts       # App entry point
 ├── prisma/                # Prisma schema (shared)
 └── docker-compose.yml
@@ -122,22 +124,24 @@ export default router;
 // server/src/controllers/items.controller.ts
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
 import { createItemSchema } from "../schemas/items.schema";
+import { ApiResponse } from "../utils/api-response";
 
 const prisma = new PrismaClient();
 
 export async function getAll(req: Request, res: Response) {
   const items = await prisma.item.findMany();
-  res.json(items);
+  ApiResponse.success(res, StatusCodes.OK, items);
 }
 
 export async function create(req: Request, res: Response) {
   const body = createItemSchema.safeParse(req.body);
   if (!body.success) {
-    return res.status(400).json({ error: body.error.issues[0].message });
+    return ApiResponse.validationError(res, body.error);
   }
   const item = await prisma.item.create({ data: body.data });
-  res.status(201).json(item);
+  ApiResponse.success(res, StatusCodes.CREATED, item, "Item created successfully");
 }
 ```
 
@@ -172,9 +176,46 @@ export type CreateItemInput = z.infer<typeof createItemSchema>;
 ```typescript
 const body = createItemSchema.safeParse(req.body);
 if (!body.success) {
-  return res.status(400).json({ error: body.error.issues[0].message });
+  return ApiResponse.validationError(res, body.error);
 }
 // Use validated data: body.data
+```
+
+### API Response Pattern
+All API responses use standardized format via `ApiResponse` class.
+
+**Success response:**
+```typescript
+{
+  "success": true,
+  "data": { ... },
+  "message": "Optional message"
+}
+```
+
+**Error response:**
+```typescript
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [{ "field": "name", "message": "Name is required" }]
+  }
+}
+```
+
+**Error codes:** `VALIDATION_ERROR`, `NOT_FOUND`, `UNAUTHORIZED`, `FORBIDDEN`, `CONFLICT`, `INTERNAL_ERROR`
+
+**ApiResponse methods:**
+```typescript
+ApiResponse.success(res, StatusCodes.OK, data, message?)
+ApiResponse.validationError(res, zodError)
+ApiResponse.notFound(res, message?)
+ApiResponse.unauthorized(res, message?)
+ApiResponse.forbidden(res, message?)
+ApiResponse.conflict(res, message)
+ApiResponse.internalError(res, message?)
 ```
 
 ### Prisma
@@ -200,3 +241,4 @@ if (!body.success) {
 - Don't manage server state with `useState` - use `useQuery` instead
 - Don't put business logic in route files - use controllers
 - Don't validate request data manually - use Zod schemas
+- Don't use raw `res.json()` or `res.status()` - use `ApiResponse` class

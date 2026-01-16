@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
 import {
   createItemSchema,
   updateItemSchema,
   itemIdSchema,
 } from "../schemas/items.schema";
+import { ApiResponse } from "../utils/api-response";
 
 const prisma = new PrismaClient();
 
@@ -14,10 +16,10 @@ export async function getAll(req: Request, res: Response) {
     const items = await prisma.item.findMany({
       orderBy: { createdAt: "desc" },
     });
-    res.json(items);
+    ApiResponse.success(res, StatusCodes.OK, items);
   } catch (error) {
     console.error("Error fetching items:", error);
-    res.status(500).json({ error: "Failed to fetch items" });
+    ApiResponse.internalError(res, "Failed to fetch items");
   }
 }
 
@@ -26,19 +28,19 @@ export async function getById(req: Request, res: Response) {
   try {
     const params = itemIdSchema.safeParse(req.params);
     if (!params.success) {
-      return res.status(400).json({ error: params.error.issues[0].message });
+      return ApiResponse.validationError(res, params.error);
     }
 
     const item = await prisma.item.findUnique({
       where: { id: params.data.id },
     });
     if (!item) {
-      return res.status(404).json({ error: "Item not found" });
+      return ApiResponse.notFound(res, "Item not found");
     }
-    res.json(item);
+    ApiResponse.success(res, StatusCodes.OK, item);
   } catch (error) {
     console.error("Error fetching item:", error);
-    res.status(500).json({ error: "Failed to fetch item" });
+    ApiResponse.internalError(res, "Failed to fetch item");
   }
 }
 
@@ -47,16 +49,16 @@ export async function create(req: Request, res: Response) {
   try {
     const body = createItemSchema.safeParse(req.body);
     if (!body.success) {
-      return res.status(400).json({ error: body.error.issues[0].message });
+      return ApiResponse.validationError(res, body.error);
     }
 
     const item = await prisma.item.create({
       data: { name: body.data.name },
     });
-    res.status(201).json(item);
+    ApiResponse.success(res, StatusCodes.CREATED, item, "Item created successfully");
   } catch (error) {
     console.error("Error creating item:", error);
-    res.status(500).json({ error: "Failed to create item" });
+    ApiResponse.internalError(res, "Failed to create item");
   }
 }
 
@@ -65,22 +67,22 @@ export async function update(req: Request, res: Response) {
   try {
     const params = itemIdSchema.safeParse(req.params);
     if (!params.success) {
-      return res.status(400).json({ error: params.error.issues[0].message });
+      return ApiResponse.validationError(res, params.error);
     }
 
     const body = updateItemSchema.safeParse(req.body);
     if (!body.success) {
-      return res.status(400).json({ error: body.error.issues[0].message });
+      return ApiResponse.validationError(res, body.error);
     }
 
     const item = await prisma.item.update({
       where: { id: params.data.id },
       data: { name: body.data.name },
     });
-    res.json(item);
+    ApiResponse.success(res, StatusCodes.OK, item, "Item updated successfully");
   } catch (error) {
     console.error("Error updating item:", error);
-    res.status(500).json({ error: "Failed to update item" });
+    ApiResponse.internalError(res, "Failed to update item");
   }
 }
 
@@ -89,15 +91,15 @@ export async function remove(req: Request, res: Response) {
   try {
     const params = itemIdSchema.safeParse(req.params);
     if (!params.success) {
-      return res.status(400).json({ error: params.error.issues[0].message });
+      return ApiResponse.validationError(res, params.error);
     }
 
     await prisma.item.delete({
       where: { id: params.data.id },
     });
-    res.status(204).send();
+    ApiResponse.success(res, StatusCodes.OK, null, "Item deleted successfully");
   } catch (error) {
     console.error("Error deleting item:", error);
-    res.status(500).json({ error: "Failed to delete item" });
+    ApiResponse.internalError(res, "Failed to delete item");
   }
 }
