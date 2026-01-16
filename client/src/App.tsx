@@ -1,74 +1,46 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface Item {
-  id: number;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { api } from "@/lib/api";
 
 function App() {
-  const [items, setItems] = useState<Item[]>([]);
   const [newItemName, setNewItemName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchItems = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/items`);
-      if (!response.ok) throw new Error("Failed to fetch items");
-      const data = await response.json();
-      setItems(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: items = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["items"],
+    queryFn: api.items.getAll,
+  });
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: api.items.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+      setNewItemName("");
+    },
+  });
 
-  const addItem = async (e: React.FormEvent) => {
+  const deleteMutation = useMutation({
+    mutationFn: api.items.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newItemName }),
-      });
-      if (!response.ok) throw new Error("Failed to add item");
-      const item = await response.json();
-      setItems([...items, item]);
-      setNewItemName("");
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    }
+    createMutation.mutate(newItemName);
   };
 
-  const deleteItem = async (id: number) => {
-    try {
-      const response = await fetch(`${API_URL}/api/items/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete item");
-      setItems(items.filter((item) => item.id !== id));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    }
-  };
+  const mutationError = createMutation.error || deleteMutation.error;
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -77,24 +49,27 @@ function App() {
           <CardTitle>Propotive Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {error && (
+          {(error || mutationError) && (
             <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-              {error}
+              {error?.message || mutationError?.message}
             </div>
           )}
 
-          <form onSubmit={addItem} className="flex gap-3">
+          <form onSubmit={handleSubmit} className="flex gap-3">
             <Input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="Enter item name"
               className="flex-1"
+              disabled={createMutation.isPending}
             />
-            <Button type="submit">Add Item</Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Adding..." : "Add Item"}
+            </Button>
           </form>
 
-          {loading ? (
+          {isLoading ? (
             <p className="text-muted-foreground">Loading...</p>
           ) : items.length === 0 ? (
             <p className="text-muted-foreground">
@@ -111,7 +86,8 @@ function App() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => deleteItem(item.id)}
+                    onClick={() => deleteMutation.mutate(item.id)}
+                    disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

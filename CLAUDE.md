@@ -7,6 +7,8 @@ Full-stack TypeScript monorepo with React frontend, Express backend, PostgreSQL 
 | Component | Technology |
 |-----------|------------|
 | Frontend | React 18 + Vite + TypeScript |
+| UI Components | shadcn/ui + Tailwind CSS |
+| Data Fetching | TanStack Query (React Query) |
 | Backend | Express + TypeScript + Nodemon |
 | Database | PostgreSQL 15 |
 | ORM | Prisma |
@@ -17,6 +19,9 @@ Full-stack TypeScript monorepo with React frontend, Express backend, PostgreSQL 
 propotive/
 ├── client/          # React frontend (port 5173)
 │   └── src/
+│       ├── components/ui/  # shadcn/ui components
+│       ├── lib/            # Utilities (api.ts, utils.ts)
+│       └── hooks/          # Custom hooks
 ├── server/          # Express backend (port 3000)
 │   └── src/
 │       └── routes/  # API route handlers
@@ -54,7 +59,40 @@ docker compose down -v  # Stop and wipe database
 ### React (client)
 - Use functional components with hooks
 - Components go in `client/src/components/`
-- Use `fetch` for API calls with `VITE_API_URL` env var
+- UI components from shadcn/ui go in `client/src/components/ui/`
+- Use path alias `@/` for imports (e.g., `@/components/ui/button`)
+
+### TanStack Query (Data Fetching)
+- Use `useQuery` for GET requests (fetching data)
+- Use `useMutation` for POST/PUT/DELETE requests (modifying data)
+- Define query keys as arrays: `["items"]`, `["items", id]`
+- Invalidate queries after mutations: `queryClient.invalidateQueries({ queryKey: ["items"] })`
+- API functions live in `client/src/lib/api.ts`
+- QueryClient is configured in `main.tsx` with sensible defaults
+
+**Query pattern:**
+```typescript
+const { data, isLoading, error } = useQuery({
+  queryKey: ["items"],
+  queryFn: api.items.getAll,
+});
+```
+
+**Mutation pattern:**
+```typescript
+const mutation = useMutation({
+  mutationFn: api.items.create,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["items"] });
+  },
+});
+```
+
+### shadcn/ui Components
+- Import from `@/components/ui/` (e.g., `@/components/ui/button`)
+- Use `cn()` utility from `@/lib/utils` for conditional classes
+- Add new components: `npx shadcn@latest add <component-name>`
+- Components are customizable - edit files directly in `components/ui/`
 
 ### Express (server)
 - Route handlers go in `server/src/routes/`
@@ -80,3 +118,5 @@ docker compose down -v  # Stop and wipe database
 - Don't run `docker compose down -v` unless you want to wipe the database
 - Don't install dependencies on host for Docker - only for IDE support
 - Don't modify files in `node_modules/`
+- Don't use raw `fetch` in components - use TanStack Query hooks
+- Don't manage server state with `useState` - use `useQuery` instead
