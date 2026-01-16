@@ -5,6 +5,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 const router = Router();
 
 router.get("/", postsController.getAll);
+router.get("/me", authMiddleware, postsController.getMyPosts);
 router.post("/", authMiddleware, postsController.create);
 router.patch("/:id/like", authMiddleware, postsController.like);
 

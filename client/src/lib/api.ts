@@ -112,6 +112,11 @@ export const api = {
       return handleResponse<BlogPost[]>(response);
     },
 
+    getMine: async (): Promise<BlogPost[]> => {
+      const response = await fetchWithCredentials(`${API_URL}/api/posts/me`);
+      return handleResponse<BlogPost[]>(response);
+    },
+
     create: async (title: string, content: string): Promise<BlogPost> => {
       const response = await fetchWithCredentials(`${API_URL}/api/posts`, {
         method: "POST",

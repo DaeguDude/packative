@@ -28,6 +28,31 @@ export async function getAll(req: Request, res: Response) {
   }
 }
 
+// GET /api/posts/me - List current user's posts
+export async function getMyPosts(req: Request, res: Response) {
+  try {
+    const userId = (req as AuthRequest).userId;
+    console.log("userId: ", userId);
+
+    const posts = await prisma.blogPost.findMany({
+      where: { authorId: userId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: {
+          select: { id: true, name: true, avatar: true },
+        },
+        _count: {
+          select: { likes: true },
+        },
+      },
+    });
+    ApiResponse.success(res, StatusCodes.OK, posts);
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    ApiResponse.internalError(res, "Failed to fetch your posts");
+  }
+}
+
 // POST /api/posts - Create a post
 export async function create(req: Request, res: Response) {
   try {
@@ -53,7 +78,12 @@ export async function create(req: Request, res: Response) {
         },
       },
     });
-    ApiResponse.success(res, StatusCodes.CREATED, post, "Post created successfully");
+    ApiResponse.success(
+      res,
+      StatusCodes.CREATED,
+      post,
+      "Post created successfully"
+    );
   } catch (error) {
     console.error("Error creating post:", error);
     ApiResponse.internalError(res, "Failed to create post");
@@ -92,7 +122,12 @@ export async function like(req: Request, res: Response) {
       await prisma.blogLike.delete({
         where: { id: existingLike.id },
       });
-      ApiResponse.success(res, StatusCodes.OK, { liked: false }, "Post unliked");
+      ApiResponse.success(
+        res,
+        StatusCodes.OK,
+        { liked: false },
+        "Post unliked"
+      );
     } else {
       // Like
       await prisma.blogLike.create({
