@@ -6,7 +6,8 @@
       "Bash(npm install:*)",
       "Bash(npx prisma generate:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npx prisma migrate dev:*)"
+      "Bash(npx prisma migrate dev:*)",
+      "WebFetch(domain:www.notion.so)"
     ]
   }
 }

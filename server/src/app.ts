@@ -5,6 +5,7 @@ import morgan from "morgan";
 import listEndpoints from "express-list-endpoints";
 import itemsRouter from "./routes/items";
 import authRouter from "./routes/auth";
+import postsRouter from "./routes/posts";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/health", (req, res) => {
 // API routes
 app.use("/api/auth", authRouter);
 app.use("/api/items", itemsRouter);
+app.use("/api/posts", postsRouter);
 
 // List all routes
 app.get("/", (req, res) => {

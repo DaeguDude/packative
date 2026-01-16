@@ -75,3 +75,27 @@ export interface SignupInput {
   name: string;
   password: string;
 }
+
+// Blog types
+export interface BlogPostAuthor {
+  id: number;
+  name: string;
+  avatar: string | null;
+}
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  content: string;
+  authorId: number;
+  author: BlogPostAuthor;
+  _count: {
+    likes: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LikeResponse {
+  liked: boolean;
+}

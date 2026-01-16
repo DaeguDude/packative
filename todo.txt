@@ -1,0 +1,3 @@
+- Probably start with Blog schema
+- And implement API routes
+- Fetch them from client

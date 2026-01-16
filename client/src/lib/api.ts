@@ -1,9 +1,9 @@
-import { Item, User, ApiResponse, isApiError } from "@shared/types/api";
+import { Item, User, BlogPost, LikeResponse, ApiResponse, isApiError } from "@shared/types/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Re-export types for convenience
-export type { Item, User };
+export type { Item, User, BlogPost, LikeResponse };
 
 async function handleResponse<T>(response: Response): Promise<T> {
   const json: ApiResponse<T> = await response.json();
@@ -103,6 +103,28 @@ export const api = {
         method: "DELETE",
       });
       await handleResponse<null>(response);
+    },
+  },
+
+  posts: {
+    getAll: async (): Promise<BlogPost[]> => {
+      const response = await fetchWithCredentials(`${API_URL}/api/posts`);
+      return handleResponse<BlogPost[]>(response);
+    },
+
+    create: async (title: string, content: string): Promise<BlogPost> => {
+      const response = await fetchWithCredentials(`${API_URL}/api/posts`, {
+        method: "POST",
+        body: JSON.stringify({ title, content }),
+      });
+      return handleResponse<BlogPost>(response);
+    },
+
+    like: async (id: number): Promise<LikeResponse> => {
+      const response = await fetchWithCredentials(`${API_URL}/api/posts/${id}/like`, {
+        method: "PATCH",
+      });
+      return handleResponse<LikeResponse>(response);
     },
   },
 };
