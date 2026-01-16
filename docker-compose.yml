@@ -51,5 +51,21 @@ services:
     depends_on:
       - server
 
+  studio:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: propotive-studio
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-propotive}?schema=public
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./prisma:/app/prisma
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma generate && npx prisma studio --port 5555 --browser none"
+
 volumes:
   postgres_data:
